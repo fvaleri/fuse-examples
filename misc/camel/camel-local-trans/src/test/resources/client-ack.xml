@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<beans xmlns="http://www.springframework.org/schema/beans" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="
+        http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd
+        http://camel.apache.org/schema/spring http://camel.apache.org/schema/spring/camel-spring.xsd">
+
+    <bean id="partner" class="it.fvaleri.integ.PartnerServiceBean" />
+    <bean id="prepareAcknowledge" class="it.fvaleri.integ.ClientAckBean" />
+    <bean id="shutdown" class="org.apache.camel.impl.DefaultShutdownStrategy">
+		<property name="timeout" value="10"/>
+	</bean>
+
+    <camelContext id="camel" xmlns="http://camel.apache.org/schema/spring" streamCache="true" trace="false">
+        <propertyPlaceholder id="properties" location="sql.properties" />
+        <jmxAgent id="agent" disabled="true" />
+
+        <route id="partnerToDB">
+            <from uri="jms:queue:partners" />
+            <bean ref="prepareAcknowledge" />
+            <bean ref="partner" method="toMap" />
+            <to uri="sql:{{sql-insert}}?dataSource=#myDataSource" />
+        </route>
+    </camelContext>
+
+    <!-- ConnectionFactory to connect to the JMS broker -->
+    <bean id="connectionFactory" class="org.apache.activemq.ActiveMQConnectionFactory">
+        <property name="brokerURL" value="failover:(vm://localhost)?jms.prefetchPolicy.all=500&amp;maxReconnectAttempts=0" />
+        <property name="userName" value="admin" />
+        <property name="password" value="admin" />
+    </bean>
+
+    <!-- JMS Camel Component which uses Spring DefaultMessageListenerContainer -->
+    <bean id="jms" class="org.apache.camel.component.jms.JmsComponent">
+        <property name="configuration">
+            <bean class="org.apache.camel.component.jms.JmsConfiguration">
+                <property name="connectionFactory" ref="connectionFactory" />
+                <!-- use client acknowledge mode -->
+                <property name="acknowledgementModeName" value="CLIENT_ACKNOWLEDGE" />
+                <property name="cacheLevelName" value="CACHE_CONSUMER" />
+            </bean>
+        </property>
+    </bean>
+
+    <!-- Derby in-memory database -->
+    <bean id="myDataSource" class="org.springframework.jdbc.datasource.DriverManagerDataSource">
+        <property name="driverClassName" value="org.apache.derby.jdbc.EmbeddedXADataSource" />
+        <property name="url" value="jdbc:derby:memory:order;create=true" />
+    </bean>
+
+</beans>

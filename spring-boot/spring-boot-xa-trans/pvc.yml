@@ -1,0 +1,11 @@
+# pvc for the transaction log
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: boot-xa-trans
+spec:
+  accessModes:
+    - ReadWriteMany
+  resources:
+    requests:
+      storage: 1Gi

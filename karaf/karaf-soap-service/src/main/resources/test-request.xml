@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<soap:Envelope xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/">
+    <soap:Header />
+    <soap:Body>
+        <ns1:inputReportIncident xmlns:ns1="http://integ.fvaleri.it">
+            <incidentId>111</incidentId>
+            <incidentDate>2019-04-12</incidentDate>
+            <givenName>Fede</givenName>
+            <familyName>Red Hat</familyName>
+            <summary>Test</summary>
+            <details>Test Test Test</details>
+            <email>fede@localhost</email>
+            <phone>3331111111</phone>
+        </ns1:inputReportIncident>
+    </soap:Body>
+</soap:Envelope>

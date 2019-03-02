@@ -1,0 +1,12 @@
+# there is a special controller that requires edit permissions, to guarantee that when the application is scaled down, 
+# all instances that are terminated complete correctly all their work without leaving pending transactions
+apiVersion: v1
+kind: RoleBinding
+metadata:
+  name: ${project.artifactId}
+roleRef:
+  # enable resources edit from whithin the pod
+  name: edit
+subjects:
+  - kind: ServiceAccount
+    name: ${project.artifactId}

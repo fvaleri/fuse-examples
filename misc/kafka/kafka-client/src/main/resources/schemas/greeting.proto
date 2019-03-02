@@ -1,0 +1,6 @@
+package it.fvaleri
+
+message greeting {
+  required string message = 1;
+  required int32 time = 2;
+}

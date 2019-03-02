@@ -1,0 +1,15 @@
+{
+    "namespace": "it.fvaleri",
+    "type": "record",
+    "name": "greeting",
+    "fields": [
+        {
+            "name": "message",
+            "type": "string"
+        },
+        {
+            "name": "time",
+            "type": "long"
+        }
+    ]
+}

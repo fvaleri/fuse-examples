@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<blueprint xmlns="http://www.osgi.org/xmlns/blueprint/v1.0.0"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:cm="http://aries.apache.org/blueprint/xmlns/blueprint-cm/v1.2.0"
+    xsi:schemaLocation="http://www.osgi.org/xmlns/blueprint/v1.0.0 http://www.osgi.org/xmlns/blueprint/v1.0.0/blueprint.xsd">
+
+    <camelContext id="myContext" xmlns="http://camel.apache.org/schema/blueprint" streamCache="true" trace="false" useMDCLogging="true">
+        <template id="producerTemplate" />
+        <routeBuilder ref="benchRouteBuilder" />
+    </camelContext>
+
+    <bean id="benchRouteBuilder" class="it.fvaleri.integ.BenchRouteBuilder" />
+
+    <bean id="shutdown" class="org.apache.camel.impl.DefaultShutdownStrategy">
+        <property name="timeout" value="10" />
+    </bean>
+
+    <bean id="jmsConnectionFactory" class="org.apache.qpid.jms.JmsConnectionFactory">
+        <property name="remoteURI" value="failover:(amqps://localhost:61617,amqps://localhost:61618)?failover.maxReconnectAttempts=10000&amp;failover.nested.transport.verifyHost=false&amp;failover.nested.transport.trustStoreLocation=/tmp/jks/client.ts&amp;failover.nested.transport.trustStorePassword=secret" />
+        <property name="username" value="admin" />
+        <property name="password" value="admin" />
+    </bean>
+
+    <bean id="pooledConnectionFactory" class="org.apache.activemq.jms.pool.PooledConnectionFactory"
+            init-method="start" destroy-method="stop" depends-on="jmsConnectionFactory">
+        <property name="connectionFactory" ref="jmsConnectionFactory" />
+        <property name="maxConnections" value="2" />
+        <property name="idleTimeout" value="30000" />
+    </bean>
+
+    <bean id="amqp-reader" class="org.apache.camel.component.amqp.AMQPComponent">
+        <property name="configuration">
+            <bean class="org.apache.camel.component.jms.JmsConfiguration">
+                <property name="connectionFactory" ref="jmsConnectionFactory" />
+                <property name="lazyCreateTransactionManager" value="false" />
+                <property name="maxConcurrentConsumers" value="1" />
+                <property name="cacheLevelName" value="CACHE_CONSUMER" />
+            </bean>
+        </property>
+    </bean>
+
+    <bean id="amqp-writer" class="org.apache.camel.component.amqp.AMQPComponent">
+        <property name="configuration">
+            <bean class="org.apache.camel.component.jms.JmsConfiguration">
+                <property name="connectionFactory" ref="pooledConnectionFactory" />
+                <property name="lazyCreateTransactionManager" value="false" />
+                <property name="cacheLevelName" value="CACHE_CONSUMER" />
+                <!-- NON_PERSISTENT = 1 and PERSISTENT = 2 -->
+                <property name="explicitQosEnabled" value="true" />
+                <property name="deliveryMode" value="2" />
+            </bean>
+        </property>
+    </bean>
+
+</blueprint>

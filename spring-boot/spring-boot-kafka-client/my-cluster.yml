@@ -1,0 +1,28 @@
+apiVersion: kafka.strimzi.io/v1alpha1
+kind: Kafka
+metadata:
+ name: my-cluster
+spec:
+ kafka:
+   replicas: 3
+   listeners:
+     external:
+       type: route
+   storage:
+     type: ephemeral
+ zookeeper:
+   replicas: 3
+   storage:
+     type: ephemeral
+ entityOperator:
+   topicOperator: {}
+---
+apiVersion: kafka.strimzi.io/v1alpha1
+kind: KafkaTopic
+metadata:
+ name: my-topic
+ labels:
+   strimzi.io/cluster: my-cluster
+spec:
+ partitions: 3
+ replicas: 3

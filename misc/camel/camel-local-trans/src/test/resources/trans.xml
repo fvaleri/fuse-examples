@@ -1,0 +1,101 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="
+        http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd
+        http://camel.apache.org/schema/spring http://camel.apache.org/schema/spring/camel-spring.xsd">
+
+    <bean id="partner" class="it.fvaleri.integ.PartnerServiceBean" />
+    <bean id="shutdown" class="org.apache.camel.impl.DefaultShutdownStrategy">
+		<property name="timeout" value="10"/>
+	</bean>
+
+    <camelContext id="camel" xmlns="http://camel.apache.org/schema/spring" streamCache="true" trace="false">
+        <propertyPlaceholder id="properties" location="sql.properties" />
+        <jmxAgent id="agent" disabled="true"/>
+
+        <!-- no onException: let TransactionErrorHandler to handle redeliveries (max 6) and TransactionManager to handle rollbacks -->
+        <!-- custom redelivery policy: it is applied to each of the 6 default redeliveries -->
+        <!--onException>
+            <exception>java.lang.Exception</exception>
+            <redeliveryPolicy maximumRedeliveries="10" redeliveryDelay="1000" retryAttemptedLogLevel="WARN"/>
+            <handled>
+                <constant>true</constant>
+            </handled>
+            <log message="Exception caught" loggingLevel="ERROR"/>
+            <rollback markRollbackOnly="true"/>
+        </onException-->
+
+        <route id="partnerToDB">
+            <from uri="jms:queue:partners" />
+            <!-- configure the route to be transacted;
+                message acked: in case of an exception down the route we can still lose it without transacted;
+                the TransactionManager is orchestrating only the broker (we are using local TXs);
+                the broker could still fail after DB insert, but before message commit (use global TXs to avoid this) -->
+            <transacted />
+            <bean ref="partner" method="toMap" />
+            <to uri="sql:{{sql-insert}}?dataSource=#myDataSource" />
+        </route>
+    </camelContext>
+
+    <!-- ConnectionFactory to connect to the JMS broker -->
+    <bean id="connectionFactory" class="org.apache.activemq.ActiveMQConnectionFactory">
+        <!-- set maxReconnectAttempts=0 to let the PooledConnectionFactory to renew stale connections;
+            prefetchPolicy: large value when having high volume of messages, one in case of XA trans or large messages -->
+        <property name="brokerURL" value="failover:(vm://localhost)?jms.prefetchPolicy.all=500&amp;maxReconnectAttempts=0" />
+        <property name="userName" value="admin" />
+        <property name="password" value="admin" />
+    </bean>
+
+    <!-- with transactions enabled because Spring DefaultMessageListenerContainer creates a new conn/session for every message
+        (see AbstractPollingMessageListenerContainer.receiveAndExecute() which triggers JmsTransactionManager.doBegin());
+        when using durable topic subscriber the connection bear a clientId and cannot be shared with other consumers,
+        so you must use a dedicated component setting (maxConnections=1) and (maxConcurrentConsumers=1) -->
+    <bean id="pooledConnectionFactory" class="org.apache.activemq.pool.PooledConnectionFactory" init-method="start" destroy-method="stop">
+        <property name="connectionFactory" ref="connectionFactory" />
+        <!-- set (maxConnections = number of JMS routes) to avoid unused connections -->
+        <property name="maxConnections" value="1" />
+        <!-- always maintain connections opened (default: 30s) -->
+        <property name="idleTimeout" value="0" />
+        <!-- set (maxActiveSessionPerConn at least = maxConcConsumers+1) to avoid session exhaustion -->
+        <property name="maximumActiveSessionPerConnection" value="11" />
+    </bean>
+
+    <!-- Spring JMS TransactionManager without XA support -->
+    <bean id="txManager" class="org.springframework.jms.connection.JmsTransactionManager">
+        <property name="connectionFactory" ref="pooledConnectionFactory" />
+    </bean>
+
+    <!-- JMS Camel Component which uses Spring DefaultMessageListenerContainer;
+        you can have stuck messages with concCons > maxConcCons (cached consumers get messages where there is no listener) -->
+    <bean id="jms" class="org.apache.camel.component.jms.JmsComponent">
+        <property name="configuration">
+            <bean class="org.apache.camel.component.jms.JmsConfiguration">
+                <property name="connectionFactory" ref="pooledConnectionFactory" />
+                <!-- whether or not to use local transactions (set to false with XA) -->
+                <property name="transacted" value="true" />
+                <property name="transactionManager" ref="txManager" />
+                <property name="concurrentConsumers" value="10" />
+                <property name="maxConcurrentConsumers" value="10" />
+                <!-- CACHE_NONE: consumer closed on every message (blocking call) and broker redelivery only;
+                    CACHE_CONSUMER: XA transactions are not supported and a mix of client/broker redelivery is used -->
+                <property name="cacheLevelName" value="CACHE_CONSUMER" />
+                <!-- with transacted session redeliveries are handled by Camel and ack mode is ignored;
+                    CLIENT_ACKNOWLEDGE: ack is sent to the broker *after* Camel has processed the message;
+                    AUTO_ACKNOWLEDGE: message is acked *before* dispatching to Camel (always risk of losing it) -->
+                <property name="acknowledgementModeName" value="AUTO_ACKNOWLEDGE" />
+                <!-- set high value to avoid too many connections/s when having lots of concurrent consumers -->
+                <property name="receiveTimeout" value="100000" />
+                <!-- set true to enforce InOnly exchange mode on consumers avoiding deadlocks
+                    caused by the producer expecting a reply and never ending the transaction -->
+                <property name="disableReplyTo" value="true" />
+            </bean>
+        </property>
+    </bean>
+
+    <!-- In-memory database -->
+    <bean id="myDataSource" class="org.springframework.jdbc.datasource.DriverManagerDataSource">
+        <property name="driverClassName" value="org.apache.derby.jdbc.EmbeddedXADataSource" />
+        <property name="url" value="jdbc:derby:memory:order;create=true" />
+    </bean>
+
+</beans>

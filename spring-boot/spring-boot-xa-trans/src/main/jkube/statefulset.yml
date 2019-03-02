@@ -1,0 +1,37 @@
+# used to guarantee uniqueness of the transaction managers (one for each pod) 
+# and requires a PersistentVolume to store transaction logs
+spec:
+  podManagementPolicy: Parallel
+  updateStrategy:
+    type: RollingUpdate
+  # the pod name (<statefulset-name>-0) is used as TX manager id and must be less than 23 chars
+  serviceName: ${project.artifactId}
+  template:
+    spec:
+      containers:
+      - env:
+        - name: CLUSTER_RECOVERY_ENABLED
+          value: true
+        - name: CLUSTER_BASE_DIR
+          value: /var/transaction/data
+        - name: CLUSTER_NODENAME
+          valueFrom:
+            fieldRef:
+              apiVersion: v1
+              fieldPath: metadata.name
+        volumeMounts:
+        - mountPath: /var/transaction/data
+          name: ${project.artifactId}-data
+        resources:
+          requests:
+            cpu: 0.2
+            memory: 256Mi
+          limits:
+            cpu: 1.0
+            memory: 256Mi
+      serviceAccountName: ${project.artifactId}
+      terminationGracePeriodSeconds: 180
+      volumes:
+      - name: ${project.artifactId}-data
+        persistentVolumeClaim:
+          claimName: boot-xa-trans

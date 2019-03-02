@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<schema xmlns="http://www.w3.org/2001/XMLSchema" targetNamespace="http://www.fvaleri.it/jaxb/gen"
+    xmlns:bookns="http://www.fvaleri.it/jaxb/gen" elementFormDefault="qualified">
+
+    <element name="bookRequest" type="bookns:BookRequest"></element>
+    <element name="bookResponse" type="bookns:BookResponse"></element>
+
+    <complexType name="BookRequest">
+        <sequence>
+            <element name="id" type="int" />
+            <element name="name" type="string" />
+        </sequence>
+    </complexType>
+
+    <complexType name="BookResponse">
+        <sequence>
+            <element name="id" type="int" />
+            <element name="name" type="string" />
+            <element name="date" type="dateTime" />
+        </sequence>
+    </complexType>
+</schema>

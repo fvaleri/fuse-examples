@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<blueprint xmlns="http://www.osgi.org/xmlns/blueprint/v1.0.0"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xmlns:cxf="http://camel.apache.org/schema/blueprint/cxf"
+    xmlns:cm="http://aries.apache.org/blueprint/xmlns/blueprint-cm/v1.2.0"
+    xsi:schemaLocation="http://www.osgi.org/xmlns/blueprint/v1.0.0 http://www.osgi.org/xmlns/blueprint/v1.0.0/blueprint.xsd">
+
+    <camelContext id="myContext" xmlns="http://camel.apache.org/schema/blueprint" streamCache="true" trace="false">
+
+        <route id="cxf-route">
+            <from uri="cxf:bean:reportIncident" />
+            <log message="Received request" loggingLevel="INFO" />
+            <to uri="bean:requestWorker" />
+            <inOnly uri="jms:queue:jms-localtx-demo?jmsMessageType=Text" />
+        </route>
+
+        <route id="amq-route">
+            <from uri="jms:queue:jms-localtx-demo" />
+            <log message="Received message" />
+            <to uri="bean:messageWorker" />
+        </route>
+
+    </camelContext>
+
+    <bean id="requestWorker" class="it.fvaleri.integ.RequestWorker" />
+    <bean id="messageWorker" class="it.fvaleri.integ.MessageWorker" />
+
+    <cxf:cxfEndpoint id="reportIncident"
+        wsdlURL="report-incident.wsdl"
+        address="/ws/incident"
+        xmlns:s="http://integ.fvaleri.it"
+        endpointName="s:ReportIncidentEndpoint"
+        serviceName="s:ReportIncidentEndpointService"
+        serviceClass="it.fvaleri.integ.ReportIncidentEndpoint">
+        <cxf:properties>
+            <!-- enable to show the cause exception message (only for test) -->
+            <entry key="exceptionMessageCauseEnabled" value="true" />
+            <!-- enable to send the stack trace back to client -->
+            <entry key="faultStackTraceEnabled" value="true" />
+            <entry key="dataFormat" value="PAYLOAD" />
+        </cxf:properties>
+    </cxf:cxfEndpoint>
+
+    <bean id="pooledCF" class="org.apache.activemq.pool.PooledConnectionFactory" init-method="start" destroy-method="stop">
+        <property name="maxConnections" value="1" />
+        <property name="idleTimeout" value="0" />
+        <property name="maximumActiveSessionPerConnection" value="10" />
+        <property name="connectionFactory">
+            <bean class="org.apache.activemq.ActiveMQConnectionFactory">
+                <property name="brokerURL" value="discovery:(fabric:default)" />
+                <!--property name="brokerURL" value="tcp://localhost:61616"/-->
+                <property name="userName" value="admin" />
+                <property name="password" value="admin" />
+                <property name="redeliveryPolicy">
+                    <bean class="org.apache.activemq.RedeliveryPolicy">
+                        <property name="maximumRedeliveries" value="3" />
+                    </bean>
+                </property>
+            </bean>
+        </property>
+    </bean>
+
+    <bean id="jms" class="org.apache.camel.component.jms.JmsComponent">
+        <property name="configuration">
+            <bean class="org.apache.camel.component.jms.JmsConfiguration">
+                <property name="connectionFactory" ref="pooledCF" />
+                <property name="transacted" value="true" />
+                <property name="acknowledgementModeName" value="AUTO_ACKNOWLEDGE" />
+                <property name="maxConcurrentConsumers" value="1" />
+                <property name="receiveTimeout" value="100000" />
+                <property name="cacheLevelName" value="CACHE_CONSUMER" />
+            </bean>
+        </property>
+    </bean>
+
+</blueprint>

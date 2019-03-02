@@ -1,0 +1,71 @@
+{
+    "swagger": "2.0",
+    "info": {
+        "title": "CustomerAPI",
+        "description": "Customer API",
+        "version": "1.0"
+    },
+    "host": "",
+    "basePath": "/camel/",
+    "tags": [
+        {
+            "name": "Customer",
+            "description": "CustomerAPI"
+        }
+    ],
+    "consumes": [
+        "application/json"
+    ],
+    "produces": [
+        "application/json"
+    ],
+    "paths": {
+        "/customers": {
+            "get": {
+                "summary": "getCustomers",
+                "description": "Get List of Customers",
+                "operationId": "getCustomer",
+                "responses": {
+                    "200": {
+                        "description": "Response"
+                    }
+                }
+            },
+            "post": {
+                "summary": "createCustomers",
+                "description": "Create list of customers",
+                "operationId": "createCustomer",
+                "responses": {
+                    "201": {
+                        "description": "Response",
+                        "schema": {
+                            "$ref": "#/definitions/CustomerData"
+                        }
+                    }
+                }
+            }
+        }
+    },
+    "definitions": {
+        "CustomerData": {
+            "title": "Root Type for CustomerData",
+            "description": "Customer Data   ",
+            "type": "object",
+            "properties": {
+                "name": {
+                    "type": "string"
+                },
+                "company": {
+                    "type": "string"
+                },
+                "phone": {
+                    "type": "string"
+                },
+                "email": {
+                    "type": "string"
+                }
+            },
+            "example": "{\n    \"name\":\"Fede\", \n    \"company\":\"redhat\", \n    \"phone\":\"11111111\", \n    \"email\":\"fede@localhost\"\n}"
+        }
+    }
+}
