@@ -2,12 +2,13 @@ package it.fvaleri.integ;
 
 import java.io.File;
 import java.net.URL;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Properties;
-import java.util.Random;
+import java.util.*;
 import java.util.concurrent.TimeUnit;
 
+import io.apicurio.registry.utils.serde.*;
+import io.apicurio.registry.utils.serde.strategy.FindBySchemaIdStrategy;
+import io.apicurio.registry.utils.serde.strategy.SimpleTopicIdStrategy;
+import io.strimzi.kafka.oauth.client.ClientConfig;
 import org.apache.kafka.clients.CommonClientConfigs;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.producer.ProducerConfig;
@@ -18,23 +19,28 @@ import org.apache.kafka.common.serialization.StringSerializer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import io.apicurio.registry.utils.serde.AbstractKafkaSerDe;
-import io.apicurio.registry.utils.serde.AbstractKafkaSerializer;
-import io.apicurio.registry.utils.serde.AvroKafkaDeserializer;
-import io.apicurio.registry.utils.serde.AvroKafkaSerializer;
-import io.apicurio.registry.utils.serde.JsonSchemaKafkaDeserializer;
-import io.apicurio.registry.utils.serde.JsonSchemaKafkaSerializer;
-import io.apicurio.registry.utils.serde.ProtobufKafkaDeserializer;
-import io.apicurio.registry.utils.serde.ProtobufKafkaSerializer;
-import io.apicurio.registry.utils.serde.strategy.FindBySchemaIdStrategy;
-import io.apicurio.registry.utils.serde.strategy.SimpleTopicIdStrategy;
-import io.strimzi.kafka.oauth.client.ClientConfig;
+public final class Utils {
+    private static final Logger LOG = LoggerFactory.getLogger(Utils.class);
+    private static final Random RANDOM = new Random();
 
-public final class ApplicationUtil {
-    private static final Logger LOG = LoggerFactory.getLogger(ApplicationUtil.class);
-    private static Random RND = new Random();
+    private Utils() {
+    }
 
-    private ApplicationUtil() {
+    public static String getSaslPlainJaasConfig() {
+        String jaasConfig = "org.apache.kafka.common.security.plain.PlainLoginModule required\nusername=\""
+                + Configuration.SASL_USERNAME + "\" password=\"" + Configuration.SASL_PASSWORD + "\";";
+        return jaasConfig;
+    }
+
+    public static String getSaslScramJaasConfig() {
+        String jaasConfig = "org.apache.kafka.common.security.scram.ScramLoginModule required\nusername=\""
+                + Configuration.SASL_USERNAME + "\" password=\"" + Configuration.SASL_PASSWORD + "\";";
+        return jaasConfig;
+    }
+
+    public static String getSaslOauthJaasConfig() {
+        final String jaasConfig = "org.apache.kafka.common.security.oauthbearer.OAuthBearerLoginModule required;";
+        return jaasConfig;
     }
 
     public static void sleep(long millis) {
@@ -48,16 +54,15 @@ public final class ApplicationUtil {
         LOG.debug("Creating message");
         StringBuilder sb = new StringBuilder();
         String alphabet = "ACGT";
-        long length = ConfigurationUtil.getMessageSizeBytes();
-        for (long i = 0; i < length; i++) {
-            sb.append(alphabet.charAt(RND.nextInt(alphabet.length())));
+        for (long i = 0; i < Configuration.MESSAGE_SIZE_BYTES; i++) {
+            sb.append(alphabet.charAt(RANDOM.nextInt(alphabet.length())));
         }
         return sb.toString();
     }
 
     public static File getResourceAsFile(String name) {
         LOG.debug("Getting resource {}", name);
-        ClassLoader classLoader = ApplicationUtil.class.getClassLoader();
+        ClassLoader classLoader = Utils.class.getClassLoader();
         URL resource = classLoader.getResource(name);
         if (resource == null) {
             throw new IllegalArgumentException(String.format("Resource %s not found", name));
@@ -72,21 +77,21 @@ public final class ApplicationUtil {
         // JMX metrics (kafka.producer:type=producer-metrics,client-id="{client-id}")
         String clientId = "producer-" + System.currentTimeMillis();
         config.put(ProducerConfig.CLIENT_ID_CONFIG, clientId);
-        config.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, ConfigurationUtil.getBootstrapServers());
+        config.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, Configuration.BOOTSTRAP_SERVERS);
         config.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, StringSerializer.class.getName());
         config.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, StringSerializer.class.getName());
 
         // durability/availability tradeoff
         // by default values are optimized for availability and latency, so if durability
         // is more important you have to tune it (i.e. acks=all, min.insync.replicas=3).
-        config.put(ProducerConfig.ACKS_CONFIG, ConfigurationUtil.getProducerAcks());
+        config.put(ProducerConfig.ACKS_CONFIG, Configuration.PRODUCER_ACKS);
 
         // throughput/latency tradeoff (batching)
         // buffering: must accomodate batching, compression and in-flight requests
         config.put(ProducerConfig.BATCH_SIZE_CONFIG, 16_384);
         config.put(ProducerConfig.LINGER_MS_CONFIG, 0);
         config.put(ProducerConfig.BUFFER_MEMORY_CONFIG, 33_554_432);
-        config.put(ProducerConfig.COMPRESSION_TYPE_CONFIG, ConfigurationUtil.getProducerCompression());
+        config.put(ProducerConfig.COMPRESSION_TYPE_CONFIG, Configuration.PRODUCER_COMPRESSION);
         config.put(ProducerConfig.DELIVERY_TIMEOUT_MS_CONFIG, Integer.MAX_VALUE);
 
         // ordering
@@ -110,25 +115,20 @@ public final class ApplicationUtil {
         config.put(ProducerConfig.RETRIES_CONFIG, Integer.MAX_VALUE);
 
         // registry
-        if (ConfigurationUtil.getRegistryUrl() != null) {
-            config.put(AbstractKafkaSerDe.REGISTRY_URL_CONFIG_PARAM, ConfigurationUtil.getRegistryUrl());
+        if (Configuration.REGISTRY_URL != null) {
+            config.put(AbstractKafkaSerDe.REGISTRY_URL_CONFIG_PARAM, Configuration.REGISTRY_URL);
             // simple schema lookup by topic name strategy
             config.put(AbstractKafkaSerializer.REGISTRY_ARTIFACT_ID_STRATEGY_CONFIG_PARAM,
                     SimpleTopicIdStrategy.class.getName());
             config.put(AbstractKafkaSerializer.REGISTRY_GLOBAL_ID_STRATEGY_CONFIG_PARAM,
                     FindBySchemaIdStrategy.class.getName());
             config.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, StringSerializer.class.getName());
-            switch (ConfigurationUtil.getSchemaFormat()) {
-            case JSON:
-                config.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, JsonSchemaKafkaSerializer.class.getName());
-            case AVRO:
-                config.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, AvroKafkaSerializer.class.getName());
-                break;
-            case PROTOBUF:
-                config.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, ProtobufKafkaSerializer.class.getName());
-                break;
-            default:
-                throw new IllegalArgumentException("Unsupported schema type");
+            switch (Configuration.SCHEMA_FORMAT) {
+                case "avro":
+                    config.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, AvroKafkaSerializer.class.getName());
+                    break;
+                default:
+                    throw new IllegalArgumentException("Unsupported schema type");
             }
         }
 
@@ -143,11 +143,11 @@ public final class ApplicationUtil {
         String clientId = "consumer-" + System.currentTimeMillis();
         config.put(ConsumerConfig.CLIENT_ID_CONFIG, clientId);
         // every client with the same group.id will be part of the same consumer group
-        config.put(ConsumerConfig.GROUP_ID_CONFIG, ConfigurationUtil.getConsumerGroupId());
-        config.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, ConfigurationUtil.getBootstrapServers());
+        config.put(ConsumerConfig.GROUP_ID_CONFIG, Configuration.CONSUMER_GROUP_ID);
+        config.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, Configuration.BOOTSTRAP_SERVERS);
         config.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class.getName());
         config.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class.getName());
-        config.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, ConfigurationUtil.getConsumerOffset());
+        config.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, Configuration.CONSUMER_OFFSET);
 
         // throughput/latency tradeoff (batching)
         // increase the min amount of data fetched in a request to improve throughput
@@ -184,20 +184,15 @@ public final class ApplicationUtil {
         config.put(ConsumerConfig.RETRY_BACKOFF_MS_CONFIG, 2_000);
 
         // registry
-        if (ConfigurationUtil.getRegistryUrl() != null) {
-            config.put(AbstractKafkaSerDe.REGISTRY_URL_CONFIG_PARAM, ConfigurationUtil.getRegistryUrl());
+        if (Configuration.REGISTRY_URL != null) {
+            config.put(AbstractKafkaSerDe.REGISTRY_URL_CONFIG_PARAM, Configuration.REGISTRY_URL);
             config.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class.getName());
-            switch (ConfigurationUtil.getSchemaFormat()) {
-            case JSON:
-                config.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, JsonSchemaKafkaDeserializer.class.getName());
-            case AVRO:
-                config.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, AvroKafkaDeserializer.class.getName());
-                break;
-            case PROTOBUF:
-                config.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, ProtobufKafkaDeserializer.class.getName());
-                break;
-            default:
-                throw new IllegalArgumentException("Unsupported schema type");
+            switch (Configuration.SCHEMA_FORMAT) {
+                case "avro":
+                    config.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, AvroKafkaDeserializer.class.getName());
+                    break;
+                default:
+                    throw new IllegalArgumentException("Unsupported schema type");
             }
         }
 
@@ -207,70 +202,38 @@ public final class ApplicationUtil {
 
     private static Map<String, String> createSharedConfig() {
         Map<String, String> config = new HashMap<>();
-        config.put(CommonClientConfigs.SECURITY_PROTOCOL_CONFIG, ConfigurationUtil.getSecurityProtocol());
+        config.put(CommonClientConfigs.SECURITY_PROTOCOL_CONFIG, Configuration.SECURITY_PROTOCOL);
 
-        if (ConfigurationUtil.getSslTruststoreLocation() != null) {
-            config.put(SslConfigs.SSL_TRUSTSTORE_LOCATION_CONFIG, ConfigurationUtil.getSslTruststoreLocation());
-            config.put(SslConfigs.SSL_TRUSTSTORE_PASSWORD_CONFIG, ConfigurationUtil.getSslTruststorePassword());
-            if (ConfigurationUtil.getSslKeystoreLocation() != null) {
-                config.put(SslConfigs.SSL_KEYSTORE_LOCATION_CONFIG, ConfigurationUtil.getSslKeystoreLocation());
-                config.put(SslConfigs.SSL_KEYSTORE_PASSWORD_CONFIG, ConfigurationUtil.getSslKeystorePassword());
+        if (Configuration.SSL_TRUSTSTORE_LOCATION != null) {
+            config.put(SslConfigs.SSL_TRUSTSTORE_LOCATION_CONFIG, Configuration.SSL_TRUSTSTORE_LOCATION);
+            config.put(SslConfigs.SSL_TRUSTSTORE_PASSWORD_CONFIG,Configuration.SSL_TRUSTSTORE_PASSWORD);
+            if (Configuration.SSL_KEYSTORE_LOCATION != null) {
+                config.put(SslConfigs.SSL_KEYSTORE_LOCATION_CONFIG, Configuration.SSL_KEYSTORE_LOCATION);
+                config.put(SslConfigs.SSL_KEYSTORE_PASSWORD_CONFIG, Configuration.SSL_KEYSTORE_LOCATION);
             }
         }
 
-        if (ConfigurationUtil.getSaslMechanism() != null) {
-            config.put(SaslConfigs.SASL_MECHANISM, ConfigurationUtil.getSaslMechanism().toString());
-            switch (ConfigurationUtil.getSaslMechanism()) {
-                case PLAIN:
-                    config.put(SaslConfigs.SASL_JAAS_CONFIG, ConfigurationUtil.getSaslPlainJaasConfig());
+        if (Configuration.SASL_MECHANISM != null) {
+            config.put(SaslConfigs.SASL_MECHANISM, Configuration.SASL_MECHANISM);
+            switch (Configuration.SASL_MECHANISM) {
+                case "PLAIN":
+                    config.put(SaslConfigs.SASL_JAAS_CONFIG, Utils.getSaslPlainJaasConfig());
                     break;
-                case SCRAMSHA512:
-                    config.put(SaslConfigs.SASL_JAAS_CONFIG, ConfigurationUtil.getSaslScramJaasConfig());
+                case "SCRAMSHA512":
+                    config.put(SaslConfigs.SASL_JAAS_CONFIG, Utils.getSaslScramJaasConfig());
                     break;
-                case OAUTHBEARER:
-                    config.put(SaslConfigs.SASL_JAAS_CONFIG, ConfigurationUtil.getSaslOauthJaasConfig());
-                    config.put(SaslConfigs.SASL_LOGIN_CALLBACK_HANDLER_CLASS, ConfigurationUtil.getSaslOauthCallbackHandler());
-                    System.setProperty(ClientConfig.OAUTH_TOKEN_ENDPOINT_URI, ConfigurationUtil.getSaslOauthTokenEndpointUri());
-                    System.setProperty(ClientConfig.OAUTH_CLIENT_ID, ConfigurationUtil.getSaslOauthClientId());
-                    System.setProperty(ClientConfig.OAUTH_CLIENT_SECRET, ConfigurationUtil.getSaslOauthClientSecret());
-                    System.setProperty(ClientConfig.OAUTH_SCOPE, ConfigurationUtil.getSaslOauthScope());
+                case "OAUTHBEARER":
+                    config.put(SaslConfigs.SASL_JAAS_CONFIG, Utils.getSaslOauthJaasConfig());
+                    config.put(SaslConfigs.SASL_LOGIN_CALLBACK_HANDLER_CLASS, Configuration.SASL_OAUTH_CALLBACK_HANDLER);
+                    System.setProperty(ClientConfig.OAUTH_TOKEN_ENDPOINT_URI, Configuration.SASL_OAUTH_TOKEN_ENDPOINT_URI);
+                    System.setProperty(ClientConfig.OAUTH_CLIENT_ID, Configuration.SASL_OAUTH_CLIENT_ID);
+                    System.setProperty(ClientConfig.OAUTH_CLIENT_SECRET, Configuration.SASL_OAUTH_CLIENT_SECRET);
+                    System.setProperty(ClientConfig.OAUTH_SCOPE, Configuration.SASL_OAUTH_SCOPE);
                     break;
                 default:
                     throw new IllegalArgumentException("Unknown SASL mechanism");
             }
-
         }
         return config;
     }
-
-    public static enum SaslMechanism {
-        PLAIN("PLAIN"), SCRAMSHA512("SCRAMSHA512"), OAUTHBEARER("OAUTHBEARER");
-
-        private final String id;
-
-        private SaslMechanism(String id) {
-            this.id = id;
-        }
-
-        @Override
-        public String toString() {
-            return id;
-        }
-    }
-
-    public static enum SchemaFormat {
-        JSON("json"), AVRO("avro"), PROTOBUF("protobuf");
-
-        private final String id;
-
-        private SchemaFormat(String id) {
-            this.id = id;
-        }
-
-        @Override
-        public String toString() {
-            return id;
-        }
-    }
 }
-

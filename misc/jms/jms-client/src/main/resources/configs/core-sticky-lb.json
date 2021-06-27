@@ -1,0 +1,7 @@
+{
+  "CONNECTION_FACTORY": "core",
+  "CONNECTION_URL": "(tcp://localhost:61616,tcp://localhost:61617)?ha=true&connectionLoadBalancingPolicyClassName=org.apache.activemq.artemis.api.core.client.loadbalance.RandomStickyConnectionLoadBalancingPolicy",
+  "CONNECTION_USERNAME": "admin",
+  "CONNECTION_PASSWORD": "admin",
+  "DESTINATION_QUEUE": "TestQueue"
+}

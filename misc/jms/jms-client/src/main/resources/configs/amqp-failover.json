@@ -1,0 +1,7 @@
+{
+  "CONNECTION_FACTORY": "amqp",
+  "CONNECTION_URL": "(tcp://localhost:61616,tcp://localhost:61617)?jms.prefetchPolicy.all=100&maxReconnectAttempts=-1&reconnectSupported=false&updateURIsSupported=false&priorityBackup=false",
+  "CONNECTION_USERNAME": "admin",
+  "CONNECTION_PASSWORD": "admin",
+  "DESTINATION_QUEUE": "TestQueue"
+}

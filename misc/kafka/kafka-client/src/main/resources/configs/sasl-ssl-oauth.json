@@ -1,0 +1,11 @@
+{
+  "BOOTSTRAP_SERVERS": "bootstrap-kafka.k8s.io:443",
+  "SECURITY_PROTOCOL": "SASL_SSL",
+  "SSL_TRUSTSTORE_LOCATION": "/tmp/truststore.jks",
+  "SSL_TRUSTSTORE_PASSWORD": "changeit",
+  "SASL_MECHANISM": "OAUTHBEARER",
+  "SASL_OAUTH_CALLBACK_HANDLER": "io.strimzi.kafka.oauth.client.JaasClientOauthLoginCallbackHandler",
+  "SASL_OAUTH_TOKEN_ENDPOINT_URI": "http://example.com/openid-connect/token",
+  "SASL_OAUTH_CLIENT_ID": "1234234232",
+  "SASL_OAUTH_CLIENT_SECRET": "FHGfhj5656FFgYfhjF56rYFGUYGgi"
+}

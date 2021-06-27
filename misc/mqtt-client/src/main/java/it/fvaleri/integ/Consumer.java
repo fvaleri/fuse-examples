@@ -11,24 +11,22 @@ public class Consumer implements Runnable {
     @Override
     public void run() {
         try {
-            LOG.debug("Starting consumer");
-            client = ApplicationUtil.openConnection();
+            LOG.info("Starting consumer");
+            client = Utils.openConnection();
             Runtime.getRuntime().addShutdownHook(new Thread() {
                 public void run() {
-                    ApplicationUtil.closeConnection(client);
+                    Utils.closeConnection(client);
                 }
             });
 
-            client.subscribe(ConfigurationUtil.getTopic(), (topic, message) -> {
-                String text = ApplicationUtil.shorten(new String(message.getPayload()));
+            client.subscribe(Configuration.TOPIC, (topic, message) -> {
+                String text = Utils.shorten(new String(message.getPayload()));
                 LOG.info("Received message {}", text);
-                ApplicationUtil.sleep(ConfigurationUtil.getProcessingDelayMs());
+                Utils.sleep(Configuration.PROCESSING_DELAY_MS);
             });
-            ApplicationUtil.sleep(Long.MAX_VALUE);
-
+            Utils.sleep(Long.MAX_VALUE);
         } catch (Exception e) {
             LOG.error("Consumer error", e);
         }
     }
 }
-

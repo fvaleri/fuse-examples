@@ -1,0 +1,8 @@
+{
+  "BOOTSTRAP_SERVERS": "bootstrap-kafka.k8s.io:443",
+  "SECURITY_PROTOCOL": "SSL",
+  "SSL_TRUSTSTORE_LOCATION": "/tmp/truststore.jks",
+  "SSL_TRUSTSTORE_PASSWORD": "changeit",
+  "REGISTRY_URL": "http://my-registry:8080/api",
+  "SCHEMA_FORMAT": "avro"
+}

@@ -17,8 +17,7 @@ activemq-data
 *.out
 *.hprof
 *.cap
-*.ks
-*.ts
+*.jks
 *.p12
 *.crt
 *.pem

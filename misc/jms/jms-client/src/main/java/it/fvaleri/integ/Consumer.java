@@ -26,32 +26,31 @@ public class Consumer implements Runnable, MessageListener, ExceptionListener {
     public void run() {
         try {
             LOG.debug("Starting consumer");
-            connection = ApplicationUtil.openConnection();
+            connection = Utils.openConnection();
             connection.setExceptionListener(this);
             Runtime.getRuntime().addShutdownHook(new Thread() {
                 public void run() {
-                    ApplicationUtil.closeConnection(connection);
+                    Utils.closeConnection(connection);
                 }
             });
 
             // the ack mode is not relevant when using a transacted session
             session = connection.createSession(false, Session.AUTO_ACKNOWLEDGE);
-            Destination dest = ApplicationUtil.createDestination(session);
+            Destination dest = Utils.createDestination(session);
 
             // creating a consumer involves a network round trip to the broker
-            if (ConfigurationUtil.getSubscriptionName() != null) {
+            if (Configuration.SUBSCRIPTION_NAME != null) {
                 TopicSubscriber subscriber = session.createDurableSubscriber((Topic) dest,
-                        ConfigurationUtil.getSubscriptionName(), ConfigurationUtil.getMessageSelector(), false);
+                        Configuration.SUBSCRIPTION_NAME, Configuration.MESSAGE_SELECTOR, false);
                 subscriber.setMessageListener(this);
             } else {
-                MessageConsumer consumer = session.createConsumer(dest, ConfigurationUtil.getMessageSelector());
+                MessageConsumer consumer = session.createConsumer(dest, Configuration.MESSAGE_SELECTOR);
                 consumer.setMessageListener(this);
             }
 
             // start consumption and wait indefinitely for new messages
             connection.start();
             latch.await();
-
         } catch (Exception e) {
             LOG.error("Client error", e);
         }
@@ -63,8 +62,7 @@ public class Consumer implements Runnable, MessageListener, ExceptionListener {
             // messages passed serially and acked only when this completes successfully
             LOG.info("Received message {}{}", message.getJMSMessageID(),
                     message.getJMSRedelivered() ? " (redelivered)" : "");
-            ApplicationUtil.sleep(ConfigurationUtil.getProcessingDelayMs());
-
+            Utils.sleep(Configuration.PROCESSING_DELAY_MS);
         } catch (Exception e) {
             LOG.error("MessageListener error:", e);
             try {
@@ -84,7 +82,7 @@ public class Consumer implements Runnable, MessageListener, ExceptionListener {
         LOG.error("ExceptionListener error", e);
         try {
             LOG.info("Trying to restart");
-            ApplicationUtil.sleep(2_000);
+            Utils.sleep(2_000);
             new Consumer().run();
             latch.countDown();
         } catch (Exception e1) {
@@ -92,4 +90,3 @@ public class Consumer implements Runnable, MessageListener, ExceptionListener {
         }
     }
 }
-

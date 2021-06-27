@@ -4,12 +4,12 @@
     "name": "greeting",
     "fields": [
         {
-            "name": "message",
-            "type": "string"
-        },
-        {
             "name": "time",
             "type": "long"
+        },
+        {
+            "name": "message",
+            "type": "string"
         }
     ]
 }

@@ -1,0 +1,9 @@
+{
+  "CONNECTION_FACTORY": "core",
+  "CONNECTION_URL": "tcp://my-broker-all-0-svc-rte-demo.apps-crc.testing:443?sslEnabled=true&useTopologyForLoadBalancing=false",
+  "SSL_TRUSTSTORE_LOCATION": "/tmp/truststore.jks",
+  "SSL_TRUSTSTORE_PASSWORD": "changeit",
+  "CONNECTION_USERNAME": "admin",
+  "CONNECTION_PASSWORD": "admin",
+  "DESTINATION_QUEUE": "TestQueue"
+}

@@ -10,7 +10,7 @@
         <appender-ref ref="STDOUT" />
     </root>
 
-    <logger name="it.fvaleri" level="INFO" />
+    <logger name="it.fvaleri" level="DEBUG" />
     <logger name="org.apache.activemq" level="INFO" />
     <logger name="org.apache.qpid" level="INFO" />
 </configuration>

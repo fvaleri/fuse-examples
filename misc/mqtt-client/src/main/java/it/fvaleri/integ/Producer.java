@@ -12,25 +12,23 @@ public class Producer implements Runnable {
     @Override
     public void run() {
         try {
-            LOG.debug("Starting producer");
-            client = ApplicationUtil.openConnection();
+            LOG.info("Starting producer");
+            client = Utils.openConnection();
             Runtime.getRuntime().addShutdownHook(new Thread() {
                 public void run() {
-                    ApplicationUtil.closeConnection(client);
+                    Utils.closeConnection(client);
                 }
             });
 
-            MqttMessage message = ApplicationUtil.createMessage();
+            MqttMessage message = Utils.createMessage();
             while (true) {
-                client.publish(ConfigurationUtil.getTopic(), message);
-                String text = ApplicationUtil.shorten(new String(message.getPayload()));
+                client.publish(Configuration.TOPIC, message);
+                String text = Utils.shorten(new String(message.getPayload()));
                 LOG.info("Sent message {}", text);
-                ApplicationUtil.sleep(ConfigurationUtil.getProcessingDelayMs());
+                Utils.sleep(Configuration.PROCESSING_DELAY_MS);
             }
-
         } catch (Exception e) {
             LOG.error("Producer error", e);
         }
     }
 }
-

@@ -1,8 +1,8 @@
 ```sh
-# run Kafka cluster and create the truststore
+# run Kafka cluster and create truststore
 CLUSTER_NAME="my-cluster"
 oc extract secret/$CLUSTER_NAME-cluster-ca-cert --keys=ca.crt --to=- > /tmp/ca.crt
-keytool -import -noprompt -trustcacerts -alias root -file /tmp/ca.crt -keystore /tmp/client.ts -storepass changeit
+keytool -import -noprompt -trustcacerts -alias root -file /tmp/ca.crt -keystore /tmp/truststore.jks -storepass changeit
 
 # dev mode run
 export BOOTSTRAP_URL="localhost:9092"

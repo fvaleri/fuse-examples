@@ -1,0 +1,9 @@
+{
+  "CONNECTION_FACTORY": "amqp",
+  "CONNECTION_URL": "amqps://broker-amq-amqp-ssl-demo.192.168.64.97.nip.io:443?transport.verifyHost=false",
+  "SSL_TRUSTSTORE_LOCATION": "/path/to/truststore.jks",
+  "SSL_TRUSTSTORE_PASSWORD": "changeit",
+  "CONNECTION_USERNAME": "admin",
+  "CONNECTION_PASSWORD": "admin",
+  "DESTINATION_QUEUE": "TestQueue"
+}

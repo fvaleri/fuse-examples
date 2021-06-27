@@ -12,11 +12,11 @@ import org.eclipse.paho.client.mqttv3.persist.MqttDefaultFilePersistence;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public final class ApplicationUtil {
-    private static final Logger LOG = LoggerFactory.getLogger(ApplicationUtil.class);
-    private static Random RND = new Random();
+public final class Utils {
+    private static final Logger LOG = LoggerFactory.getLogger(Utils.class);
+    private static final Random RND = new Random();
 
-    private ApplicationUtil() {
+    private Utils() {
     }
 
     public static void sleep(long millis) {
@@ -32,25 +32,29 @@ public final class ApplicationUtil {
 
     public static IMqttClient openConnection() throws Exception {
         LOG.debug("Connecting to server");
-        if (ConfigurationUtil.getSslTruststoreLocation() != null) {
-            System.setProperty("javax.net.ssl.trustStore", ConfigurationUtil.getSslTruststoreLocation());
-            System.setProperty("javax.net.ssl.trustStorePassword", ConfigurationUtil.getSslTruststorePassword());
-            if (ConfigurationUtil.getSslKeystoreLocation() != null) {
-                System.setProperty("javax.net.ssl.keyStore", ConfigurationUtil.getSslKeystoreLocation());
-                System.setProperty("javax.net.ssl.keyStorePassword", ConfigurationUtil.getSslKeystorePassword());
+        if (Configuration.SSL_TRUSTSTORE_LOCATION != null) {
+            System.setProperty("javax.net.ssl.trustStore", Configuration.SSL_TRUSTSTORE_LOCATION);
+            System.setProperty("javax.net.ssl.trustStorePassword", Configuration.SSL_TRUSTSTORE_PASSWORD);
+            if (Configuration.SSL_KEYSTORE_LOCATION != null) {
+                System.setProperty("javax.net.ssl.keyStore", Configuration.SSL_KEYSTORE_LOCATION);
+                System.setProperty("javax.net.ssl.keyStorePassword", Configuration.SSL_KEYSTORE_PASSWORD);
             }
         }
         String clientId = UUID.randomUUID().toString();
         // using the synchronous implementation
-        String[] urls = ConfigurationUtil.getConnectionUrl();
+        String[] urls = Configuration.CONNECTION_URL.split(",");
         IMqttClient client = new MqttClient(urls[0], clientId, new MqttDefaultFilePersistence("/tmp"));
         MqttConnectOptions options = new MqttConnectOptions();
         options.setServerURIs(urls);
         options.setAutomaticReconnect(true);
         options.setCleanSession(true);
         options.setConnectionTimeout(10);
-        options.setUserName(ConfigurationUtil.getConnectionUsername());
-        options.setPassword(ConfigurationUtil.getConnectionPassword());
+        if (Configuration.CONNECTION_USERNAME != null) {
+            options.setUserName(Configuration.CONNECTION_USERNAME);
+        }
+        if (Configuration.CONNECTION_PASSWORD != null) {
+            options.setPassword(Configuration.CONNECTION_PASSWORD.toCharArray());
+        }
         client.connect(options);
         LOG.info("CONNECTED");
         return client;
@@ -71,14 +75,13 @@ public final class ApplicationUtil {
     public static MqttMessage createMessage() {
         StringBuilder sb = new StringBuilder();
         String alphabet = "ACGT";
-        long length = ConfigurationUtil.getMessageSizeBytes();
-        for (long i = 0; i < length; i++) {
+        for (long i = 0; i < Configuration.MESSAGE_SIZE_BYTES; i++) {
             sb.append(alphabet.charAt(RND.nextInt(alphabet.length())));
         }
         byte[] payload = sb.toString().getBytes();
         MqttMessage message = new MqttMessage(payload);
-        message.setQos(ConfigurationUtil.getMessageQos());
-        message.setRetained(ConfigurationUtil.getMessageRetained());
+        message.setQos(Configuration.MESSAGE_QOS);
+        message.setRetained(Configuration.MESSAGE_RETAINED);
         return message;
     }
 }

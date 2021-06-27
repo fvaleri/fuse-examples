@@ -1,0 +1,9 @@
+{
+  "BOOTSTRAP_SERVERS": "bootstrap-kafka.k8s.io:443",
+  "SECURITY_PROTOCOL": "SASL_SSL",
+  "SSL_TRUSTSTORE_LOCATION": "/tmp/truststore.jks",
+  "SSL_TRUSTSTORE_PASSWORD": "changeit",
+  "SASL_MECHANISM": "PLAIN",
+  "SASL_USERNAME": "my-user",
+  "SASL_PASSWORD": "changeit"
+}

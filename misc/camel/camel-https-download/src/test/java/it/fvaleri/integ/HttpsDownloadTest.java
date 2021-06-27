@@ -43,12 +43,12 @@ public class HttpsDownloadTest extends CamelTestSupport {
             @Override
             public void configure() throws Exception {
                 KeyStoreParameters ksp = new KeyStoreParameters();
-                ksp.setResource("/tmp/client.ts");
-                ksp.setPassword("secret");
+                ksp.setResource("/tmp/truststore.jks");
+                ksp.setPassword("changeit");
 
                 KeyManagersParameters kmp = new KeyManagersParameters();
                 kmp.setKeyStore(ksp);
-                kmp.setKeyPassword("secret");
+                kmp.setKeyPassword("changeit");
 
                 SSLContextParameters scp = new SSLContextParameters();
                 scp.setKeyManagers(kmp);

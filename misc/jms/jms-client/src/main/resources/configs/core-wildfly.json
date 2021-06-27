@@ -1,0 +1,7 @@
+{
+  "CONNECTION_FACTORY": "core",
+  "CONNECTION_URL": "tcp://localhost:8080?httpUpgradeEnabled=true",
+  "CONNECTION_USERNAME": "admin",
+  "CONNECTION_PASSWORD": "admin",
+  "DESTINATION_QUEUE": "TestQueue"
+}

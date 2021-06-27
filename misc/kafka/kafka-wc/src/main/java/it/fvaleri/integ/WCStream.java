@@ -73,7 +73,7 @@ public final class WCStream {
 
         // tls
         /*config.put(CommonClientConfigs.SECURITY_PROTOCOL_CONFIG, "SSL");
-        config.put(SslConfigs.SSL_TRUSTSTORE_LOCATION_CONFIG, "/tmp/client.ts");
+        config.put(SslConfigs.SSL_TRUSTSTORE_LOCATION_CONFIG, "/tmp/truststore.jks");
         config.put(SslConfigs.SSL_TRUSTSTORE_PASSWORD_CONFIG, "changeit");*/
 
         // threads

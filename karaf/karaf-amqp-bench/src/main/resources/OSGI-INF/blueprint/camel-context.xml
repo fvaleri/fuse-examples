@@ -15,7 +15,7 @@
     </bean>
 
     <bean id="jmsConnectionFactory" class="org.apache.qpid.jms.JmsConnectionFactory">
-        <property name="remoteURI" value="failover:(amqps://localhost:61617,amqps://localhost:61618)?failover.maxReconnectAttempts=10000&amp;failover.nested.transport.verifyHost=false&amp;failover.nested.transport.trustStoreLocation=/tmp/jks/client.ts&amp;failover.nested.transport.trustStorePassword=secret" />
+        <property name="remoteURI" value="failover:(amqps://localhost:61617,amqps://localhost:61618)?failover.maxReconnectAttempts=10000&amp;failover.nested.transport.verifyHost=false&amp;failover.nested.transport.trustStoreLocation=/tmp/truststore.jks&amp;failover.nested.transport.trustStorePassword=changeit" />
         <property name="username" value="admin" />
         <property name="password" value="admin" />
     </bean>
@@ -50,5 +50,4 @@
             </bean>
         </property>
     </bean>
-
 </blueprint>

@@ -10,7 +10,6 @@ public class Application {
         Runtime.getRuntime().addShutdownHook(new Thread() {
             public void run() {
                 LOG.info("Application shutdown");
-                ApplicationUtil.sleep(2_000);
                 Runtime.getRuntime().halt(0);
             }
         });

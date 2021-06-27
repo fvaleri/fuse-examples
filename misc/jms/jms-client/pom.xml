@@ -12,14 +12,25 @@
         <maven.compiler.target>1.8</maven.compiler.target>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
+        <jackson-databind.version>2.12.3</jackson-databind.version>
+        <logback.version>1.2.3</logback.version>
+        <exec-plugin.version>1.6.0</exec-plugin.version>
         <activemq-client.version>5.11.0.redhat-630475</activemq-client.version>
         <artemis-client.version>2.13.0.redhat-00006</artemis-client.version>
         <qpid-client.version>0.53.0.redhat-00001</qpid-client.version>
-        <logback.version>1.2.3</logback.version>
-        <exec-plugin.version>1.6.0</exec-plugin.version>
     </properties>
 
     <dependencies>
+        <dependency>
+            <groupId>com.fasterxml.jackson.core</groupId>
+            <artifactId>jackson-databind</artifactId>
+            <version>${jackson-databind.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>ch.qos.logback</groupId>
+            <artifactId>logback-classic</artifactId>
+            <version>${logback.version}</version>
+        </dependency>
         <dependency>
             <groupId>org.apache.activemq</groupId>
             <artifactId>activemq-client</artifactId>
@@ -34,11 +45,6 @@
             <groupId>org.apache.qpid</groupId>
             <artifactId>qpid-jms-client</artifactId>
             <version>${qpid-client.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>ch.qos.logback</groupId>
-            <artifactId>logback-classic</artifactId>
-            <version>${logback.version}</version>
         </dependency>
     </dependencies>
 

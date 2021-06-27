@@ -15,11 +15,11 @@ public class Consumer implements Runnable {
 
     @Override
     public void run() {
-        LOG.debug("Starting consumer");
-        try (KafkaConsumer<Object, Object> consumer = new KafkaConsumer<>(ApplicationUtil.createConsumerConfig())) {
-            consumer.subscribe(Collections.singletonList(ConfigurationUtil.getTopics()));
+        LOG.info("Starting consumer");
+        try (KafkaConsumer<Object, Object> consumer = new KafkaConsumer<>(Utils.createConsumerConfig())) {
+            consumer.subscribe(Collections.singletonList(Configuration.TOPICS));
 
-            // if consumers fail within a consumer group, a rebalance is triggered
+            // rebalance is triggered when a consumer fails
             while (true) {
                 ConsumerRecords<Object, Object> records = consumer.poll(Duration.ofSeconds(1)); // blocking
                 if (records.isEmpty()) {
@@ -37,9 +37,8 @@ public class Consumer implements Runnable {
                 // to avoid duplicates the consumer must be idempotent
                 consumer.commitSync();
 
-                TimeUnit.MILLISECONDS.sleep(ConfigurationUtil.getProcessingDelayMs());
+                TimeUnit.MILLISECONDS.sleep(Configuration.PROCESSING_DELAY_MS);
             }
-
         } catch (Exception e) {
             LOG.error("Consumer error", e);
             throw new RuntimeException(e);

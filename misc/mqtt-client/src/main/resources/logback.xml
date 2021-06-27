@@ -10,5 +10,5 @@
         <appender-ref ref="STDOUT" />
     </root>
 
-    <logger name="it.fvaleri" level="INFO" />
+    <logger name="it.fvaleri" level="DEBUG" />
 </configuration>
