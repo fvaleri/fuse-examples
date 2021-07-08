@@ -1,5 +1,5 @@
 {
-  "BOOTSTRAP_SERVERS": "a67d9a56ae9f94d628a6175d64a29ec3-320179803.us-east-1.elb.amazonaws.com:9094",
+  "BOOTSTRAP_SERVERS": "my-cluster-kafka-bootstrap-test.apps.cluster-4c2c.4c2c.example.opentlc.com:443",
   "SECURITY_PROTOCOL": "SSL",
   "SSL_TRUSTSTORE_LOCATION": "/tmp/truststore.jks",
   "SSL_TRUSTSTORE_PASSWORD": "changeit",
